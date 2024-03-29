@@ -192,7 +192,7 @@ vector<wstring> ListFiles(const TCHAR* folderPath, const wchar_t* fileExt)
     }
 
     // Display the concatenated file paths in a single message box
-    MessageBox(NULL, szFiles, L"Files in Folder", MB_OK);
+    MessageBox(NULL, szFiles, L"Files in the selected folder:", MB_OK);
 
     return filesToDelete;
 }
