@@ -17,6 +17,7 @@ using namespace std;
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
+HWND hEditBox;
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
@@ -115,12 +116,42 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        return FALSE;
    }
 
+   // Create the drop-down list
+   HWND hComboBox = CreateWindowEx(
+       0,                              // Optional window styles
+       L"COMBOBOX",                    // Control class name
+       NULL,                           // Text to display (will be set later)
+       WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | CBS_HASSTRINGS, // Styles
+       10, 10,                         // Position
+       200, 100,                       // Size
+       hWnd,                           // Parent window
+       (HMENU)IDC_COMBO_FILETYPE,                           // Control identifier
+       hInstance,                      // Instance handle
+       NULL                            // Pointer not needed
+   );
+
+   if (hComboBox == NULL)
+   {
+       return 0;
+   }
+
+   // Add items to the drop-down list
+   SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".temp");
+   SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".txt");
+   SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".xlsx");
+
+   // Set the default selection
+   SendMessage(hComboBox, CB_SETCURSEL, 0, 0);
+
+   // Show the window
+   ShowWindow(hWnd, nCmdShow);
+
    // Create a button
    HWND hButton = CreateWindowW(
        L"BUTTON",                         // Predefined class; Unicode assumed 
        L"Select folder",                       // Button text 
        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-       10,                                // x position 
+       240,                                // x position 
        10,                                // y position 
        100,                               // Button width
        30,                                // Button height
@@ -236,7 +267,7 @@ void ShowFinalDialog(DWORD totalSizeFreedKB)
 
 
 // Function to open folder dialog
-void OpenFolderDialog(HWND hWnd)
+void OpenFolderDialog(HWND hWnd, wchar_t* fileExt)
 {
     BROWSEINFO browseInfo = { 0 };
     browseInfo.hwndOwner = hWnd;
@@ -249,10 +280,7 @@ void OpenFolderDialog(HWND hWnd)
         SHGetPathFromIDList(pidl, szPath);
         MessageBox(hWnd, szPath, L"Selected Folder", MB_OK);
 
-        // pick this from user in future
-        const wchar_t* fileExtToDelete = L".xlsx";
-
-        vector<wstring> filesToDelete = ListFiles(szPath, fileExtToDelete);
+        vector<wstring> filesToDelete = ListFiles(szPath, fileExt);
 
         int result = MessageBox(hWnd, L"Are you sure you want to delete these files?", L"Confirmation", MB_YESNO | MB_ICONQUESTION);
 
@@ -285,6 +313,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
+        int wmEvent = HIWORD(wParam);
         // Parse the menu selections:
         switch (wmId)
         {
@@ -295,7 +324,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DestroyWindow(hWnd);
             break;
         case IDM_OPEN_FOLDER: // Add a new case for opening folder dialog
-            OpenFolderDialog(hWnd);
+            if (wmEvent == BN_CLICKED) // Check for button click notification
+            {
+                // Get the selected item from the combo box
+                HWND hComboBox = GetDlgItem(hWnd, IDC_COMBO_FILETYPE); // Assuming IDC_COMBO_FILETYPE is the ID of your combo box
+                if (hComboBox != NULL) // Check if combo box handle is valid
+                {
+                    int index = SendMessage(hComboBox, CB_GETCURSEL, 0, 0);
+                    wchar_t buffer[256]; // Adjust size as needed
+                    SendMessage(hComboBox, CB_GETLBTEXT, index, (LPARAM)buffer);
+                    OpenFolderDialog(hWnd, buffer);
+                }
+            }
             break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);

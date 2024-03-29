@@ -9,6 +9,8 @@
 #define IDD_ABOUTBOX			103
 #define IDM_ABOUT				104
 #define IDM_OPEN_FOLDER			115
+#define IDC_COMBO_FILETYPE      116
+#define IDD_FILESELECT_DIALOG   117
 #define IDM_EXIT				105
 #define IDI_FILECLEANER			107
 #define IDI_SMALL				108
