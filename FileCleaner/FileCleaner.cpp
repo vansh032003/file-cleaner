@@ -20,6 +20,7 @@ HINSTANCE hInst;                                // current instance
 HWND hEditBox;
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+HBITMAP hBackgroundImage;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -42,6 +43,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDC_FILECLEANER, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
+
+
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
     {
@@ -49,6 +52,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_FILECLEANER));
+
+
 
     MSG msg;
 
@@ -106,78 +111,98 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // Store instance handle in our global variable
+    hInst = hInstance; // Store instance handle in our global variable
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
-   {
-       return FALSE;
-   }
+    if (!hWnd)
+    {
+        return FALSE;
+    }
 
-   // Create the drop-down list
-   HWND hComboBox = CreateWindowEx(
-       0,                              // Optional window styles
-       L"COMBOBOX",                    // Control class name
-       NULL,                           // Text to display (will be set later)
-       WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | CBS_HASSTRINGS, // Styles
-       10, 10,                         // Position
-       200, 100,                       // Size
-       hWnd,                           // Parent window
-       (HMENU)IDC_COMBO_FILETYPE,                           // Control identifier
-       hInstance,                      // Instance handle
-       NULL                            // Pointer not needed
-   );
+    // Load the background image
+    hBackgroundImage = (HBITMAP)LoadImage(NULL, L"C:\\wallpaper\\abcd.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 
-   if (hComboBox == NULL)
-   {
-       return 0;
-   }
+    // Register the window class
+    const wchar_t CLASS_NAME[] = L"MyWindowClass";
 
-   // Add items to the drop-down list
-   SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".temp");
-   SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".txt");
-   SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".xlsx");
+    WNDCLASS wc = {};
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = CLASS_NAME;
 
-   // Set the default selection
-   SendMessage(hComboBox, CB_SETCURSEL, 0, 0);
+    RegisterClass(&wc);
 
-   // Show the window
-   ShowWindow(hWnd, nCmdShow);
+    if (hWnd == NULL)
+    {
+        return 0;
+    }
 
-   // Create a button
-   HWND hButton = CreateWindowW(
-       L"BUTTON",                         // Predefined class; Unicode assumed 
-       L"Select folder",                       // Button text 
-       WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-       240,                                // x position 
-       10,                                // y position 
-       100,                               // Button width
-       30,                                // Button height
-       hWnd,                              // Parent window
-       (HMENU)IDM_OPEN_FOLDER,                              // No menu
-       hInstance,                         // Instance handle
-       NULL);                             // Additional application data
+    ShowWindow(hWnd, nCmdShow);
 
-   if (!hButton)
-   {
-       return FALSE;
-   }
+    // Calculate the position to center the combobox
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+    int windowWidth = rect.right - rect.left;
+    int windowHeight = rect.bottom - rect.top;
+    int comboBoxWidth = 200; // Adjust as needed
+    int comboBoxHeight = 100; // Adjust as needed
+    int x = (windowWidth - comboBoxWidth) / 2;
+    int y = (windowHeight - comboBoxHeight) / 2;
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    // Create the drop-down list
+    HWND hComboBox = CreateWindowEx(
+        0,                              // Optional window styles
+        L"COMBOBOX",                    // Control class name
+        NULL,                           // Text to display (will be set later)
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | CBS_HASSTRINGS, // Styles
+        x, y,                         // Position
+        comboBoxWidth, comboBoxHeight,                       // Size
+        hWnd,                           // Parent window
+        (HMENU)IDC_COMBO_FILETYPE,                           // Control identifier
+        hInstance,                      // Instance handle
+        NULL                            // Pointer not needed
+    );
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+    if (hComboBox == NULL)
+    {
+        return 0;
+    }
 
-   return TRUE;
+    // Add items to the drop-down list
+    SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".temp");
+    SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".txt");
+    SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)L".xlsx");
+
+    // Set the default selection
+    SendMessage(hComboBox, CB_SETCURSEL, 0, 0);
+
+    // Show the window
+    ShowWindow(hWnd, nCmdShow);
+
+    // Create a button
+    HWND hButton = CreateWindowW(
+        L"BUTTON",                         // Predefined class; Unicode assumed 
+        L"Select folder",                       // Button text 
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+        x + comboBoxWidth + 10,                                // x position 
+        y,                                // y position 
+        100,                               // Button width
+        30,                                // Button height
+        hWnd,                              // Parent window
+        (HMENU)IDM_OPEN_FOLDER,                              // No menu
+        hInstance,                         // Instance handle
+        NULL);                             // Additional application data
+
+    if (!hButton)
+    {
+        return FALSE;
+    }
+
+    UpdateWindow(hWnd);
+    return TRUE;
 }
-
 
 vector<wstring> ListFiles(const TCHAR* folderPath, const wchar_t* fileExt)
 {
@@ -310,6 +335,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     TCHAR szPath[MAX_PATH]; // Declare szPath variable
     switch (message)
     {
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        // Draw the background image
+        HDC hdcMem = CreateCompatibleDC(hdc);
+        SelectObject(hdcMem, hBackgroundImage);
+
+        BITMAP bm;
+        GetObject(hBackgroundImage, sizeof(bm), &bm);
+
+        BitBlt(hdc, 0, 0, bm.bmWidth, bm.bmHeight, hdcMem, 0, 0, SRCCOPY);
+
+        DeleteDC(hdcMem);
+
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
@@ -341,15 +385,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
     }
-    break;
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-        // TODO: Add any drawing code that uses hdc here...
-        EndPaint(hWnd, &ps);
-    }
-    break;
+     break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
